@@ -35,6 +35,7 @@ output_file="$directory/frontend.cpp"
 # Start writing the C++ code
 cat <<EOF > "$output_file"
 // Auto-generated via generate_cpp.sh
+// https://github.com/kd3n1z/smart-led-web-gui
 
 #include <ESP8266WebServer.h>
 #include "frontend.h"
