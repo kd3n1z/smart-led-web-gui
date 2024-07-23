@@ -1,3 +1,3 @@
 prepare-front:
-	npm run build
+	npm run build -- --base=/gui/
 	./generate_cpp.sh --base-url /gui dist
