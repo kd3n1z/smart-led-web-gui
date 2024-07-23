@@ -1,3 +1,3 @@
-# smart-led-frontend
+# smart-led-web-gui
 
 Svelte =)
