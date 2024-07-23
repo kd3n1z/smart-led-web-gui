@@ -16,12 +16,12 @@ jobs:
               with:
                   repository: kd3n1z/smart-led-web-gui
                   path: ./smart-led-web-gui
-                  token: ${{ secrets.PAT }}
             - name: Checkout smart-led-firmware
               uses: actions/checkout@v4
               with:
                   repository: kd3n1z/smart-led-firmware
                   path: ./smart-led-firmware
+                  token: ${{ secrets.PAT }}
             - name: Setup Node
               uses: actions/setup-node@v4
             - name: Install dependencies
