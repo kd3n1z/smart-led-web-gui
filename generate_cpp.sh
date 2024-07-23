@@ -1,59 +1,107 @@
 #!/bin/bash
 
-# Check if the directory is passed as an argument
-if [ -z "$1" ]; then
-    echo "Usage: $0 <directory>"
-    exit 1
-fi
+# Default values
+base_url=""
+directory=""
 
-directory="$1"
+# Function to print usage
+print_usage() {
+    echo "Usage: $0 --base-url <base_url> <directory>"
+    exit 1
+}
+
+# Parse command-line arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --base-url)
+            base_url="$2"
+            shift 2
+            ;;
+        *)
+            directory="$1"
+            shift
+            ;;
+    esac
+done
+
+# Check if directory is provided
+if [ -z "$directory" ]; then
+    print_usage
+fi
 
 # Output file
 output_file="$directory/frontend.cpp"
 
 # Start writing the C++ code
-echo "// Auto-generated via generate_cpp.sh" > "$output_file"
-echo >> "$output_file"
-echo "#include <ESP8266WebServer.h>" >> "$output_file"
-echo "#include \"frontend.h\"" >> "$output_file"
-echo >> "$output_file"
-echo "extern ESP8266WebServer server;" >> "$output_file"
-echo >> "$output_file"
-echo "void SETUP_FRONTEND_SERVER() {" >> "$output_file"
+cat <<EOF > "$output_file"
+// Auto-generated via generate_cpp.sh
 
+#include <ESP8266WebServer.h>
+#include "frontend.h"
 
-# Iterate over each file in the directory
-for file in "$directory"/*; do
-    # Skip directories
-    if [ -d "$file" ]; then
-        continue
-    fi
+extern ESP8266WebServer server;
+
+void SETUP_FRONTEND_SERVER() {
+EOF
+
+# Function to process files in a directory
+process_directory() {
+    local dir="$1"
     
-    # Get the file extension
-    extension="${file##*.}"
-    
-    # Skip .h files
-    if [ "$extension" == "cpp" ]; then
-        continue
-    fi
-    
-    filename=$(basename -- "$file")
+    # Iterate over each file and directory
+    for entry in "$dir"/*; do
+        [ -e "$entry" ] || continue
+        if [ -d "$entry" ]; then
+            # Recursively process subdirectories
+            process_directory "$entry"
+        else
+            # Process files
+            local file="$entry"
+            local filename=$(basename -- "$file")
+            local extension="${filename##*.}"
+            local relative_path="${file#"$directory/"}"
+            
+            # Skip .cpp files
+            [ "$extension" == "cpp" ] && continue
+            
+            # Escape content for C++ and determine MIME type
+            local escaped_content=$(sed 's/\\/\\\\/g; s/"/\\"/g; s/$/\\n/' "$file" | tr -d '\n')
+            local mime_type=$(file --mime-type -b "$file")
+            
+            # Handle specific MIME types
+            case "$extension" in
+                js) mime_type="application/javascript" ;;
+                css) mime_type="text/css" ;;
+            esac
+            
+            local url="$base_url/$relative_path"
+            
+            # Handle index.html redirection
+            if [ "$filename" == "index.html" ]; then
+                local subdir=$(basename "$(dirname "$relative_path")")
+                [ "$subdir" == "." ] && subdir=""
+                cat <<EOF >> "$output_file"
+  server.on("$base_url/$subdir", []() {
+    server.sendHeader("Location", String("$url"), true);
+    server.send(302, "text/plain", "");
+  });
+EOF
+            fi
+            
+            # Add server routing for other files
+            cat <<EOF >> "$output_file"
+  server.on("$url", []() {
+    server.send(200, "$mime_type", "$escaped_content");
+  });
+EOF
+        fi
+    done
+}
 
-    escaped_content=$(sed 's/\\/\\\\/g' "$file" | sed 's/"/\\"/g' | tr -d '\n')
-    mime_type=$(file --mime-type -b "$file")
+# Start processing from the provided directory
+process_directory "$directory"
 
-    # Handle JavaScript files explicitly
-    if [ "$extension" == "js" ]; then
-        mime_type="application/javascript"
-    fi
-    
-    # Add the server routing to the output file
-    echo "  server.on(\"/$filename\", []() {" >> "$output_file"
-    echo "    server.send(200, \"$mime_type\", \"$escaped_content\");" >> "$output_file"
-    echo "  });" >> "$output_file"
-    echo >> "$output_file"
-done
-
+# Close the C++ function
 echo "}" >> "$output_file"
 
 echo "Saved to $output_file"
