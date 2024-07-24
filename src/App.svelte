@@ -1,14 +1,18 @@
 <script lang="ts">
     import { onMount } from 'svelte';
+    import spinner from './assets/spinner-solid.svg';
 
     const apiBase = import.meta.env.DEV ? 'http://192.168.0.110/api?' : window.location.origin + '/api?';
 
     let color: string;
+    let visiblePage = 'loader';
 
     onMount(async () => {
         const rgb: number[] = (await apiRequest('get-solid-color'))[0].split(' ').map((e) => parseInt(e));
 
         color = rgbToHex(rgb[0], rgb[1], rgb[2]);
+
+        visiblePage = 'main';
     });
 
     function onChangeColor(value: string) {
@@ -62,9 +66,12 @@
 </script>
 
 <main>
-    Smart LED Web GUI
-
-    <div>
+    <div class={visiblePage == 'loader' ? 'visible' : ''} id="loader">
+        <img src={spinner} alt="spinner" />
+        Loading...
+    </div>
+    <div class={visiblePage == 'main' ? 'visible' : ''} id="main">
+        <span class="title">Smart LED Web GUI</span>
         <input type="color" on:change={(e) => onChangeColor(e.currentTarget.value)} value={color} />
     </div>
 </main>
