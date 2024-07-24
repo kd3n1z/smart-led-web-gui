@@ -23,7 +23,7 @@
 
         console.log('making api request: ' + commands);
 
-        fetch(window.location.origin + '/api' + new URLSearchParams({ commands }));
+        fetch(window.location.origin + '/api?' + new URLSearchParams({ commands }));
     }
 </script>
 
