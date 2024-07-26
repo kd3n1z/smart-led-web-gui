@@ -80,6 +80,27 @@ main {
 }
 
 #main {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 32px;
+    text-align: center;
+
+    > * {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+
+        > * {
+            width: 100%;
+        }
+
+        > input[type='color'] {
+            height: 390px;
+        }
+    }
 }
 
 @media (max-width: 600px) {
